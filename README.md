@@ -18,15 +18,11 @@ Once the setup is complete, navigate to: **[http://idp.127.0.0.1.nip.io](http://
 
 ## Helm Installation
 
-To install Turnkey IDP on any existing Kubernetes cluster (including Kind, Minikube, or cloud providers) using the pre-published Helm chart:
+To install Turnkey IDP directly from the remote GitHub Container Registry (without cloning the repository) on any existing Kubernetes cluster:
 
 ```bash
-# Clone the repository
-git clone https://github.com/Digvijay/TurnkeyIDP.git
-cd TurnkeyIDP
-
-# Install the Helm chart
-helm upgrade --install turnkey-idp ./charts/turnkey-idp \
+helm upgrade --install turnkey-idp oci://ghcr.io/digvijay/charts/turnkey-idp \
+  --version 0.1.0 \
   --namespace turnkey-idp \
   --create-namespace
 ```
