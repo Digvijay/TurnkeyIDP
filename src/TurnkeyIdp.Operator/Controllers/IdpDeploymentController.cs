@@ -382,7 +382,7 @@ public class IdpDeploymentController : IEntityController<IdpDeployment>
             }
 
             // Reconcile Gateway API routes — domain and gatewayClass come from the spec
-            ReconcileGatewayRoutes(entity.Spec.Domain, entity.Spec.Delivery.GatewayClass);
+            ReconcileGatewayRoutes(entity.Spec.Domain, entity.Spec.Delivery.GatewayClass, entity.Spec.Backstage.Enabled);
 
             // 7. Reconcile Completed
             entity.Status.Phase = "Ready";
@@ -621,7 +621,7 @@ spec:
         {
             RunHelmCommand("upgrade --install grafana grafana/grafana -n monitoring --set adminPassword=admin");
         }
-    }    private void ReconcileGatewayRoutes(string domain, string gatewayClass)
+    }    private void ReconcileGatewayRoutes(string domain, string gatewayClass, bool enableBackstage)
     {
         // Detect if the Operator itself is running inside a Kubernetes cluster.
         // When in-cluster, real Services reference the Operator and UI Deployments directly.
@@ -827,7 +827,11 @@ spec:
   rules:
   - backendRefs:
     - name: jaeger
-      port: 16686
+      port: 16686";
+
+        if (enableBackstage)
+        {
+            yaml += $@"
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -844,6 +848,7 @@ spec:
   - backendRefs:
     - name: backstage
       port: 7007";
+        }
 
         var filePath = Path.Combine(Path.GetTempPath(), "gateway-routes.yaml");
         File.WriteAllText(filePath, yaml);

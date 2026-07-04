@@ -17,6 +17,13 @@ spec:
         properties:
           spec:
             properties:
+              backstage:
+                properties:
+                  catalogRepoUrl:
+                    type: string
+                  enabled:
+                    type: boolean
+                type: object
               ci:
                 properties:
                   engine:
@@ -48,6 +55,8 @@ spec:
                 type: string
               gitOps:
                 properties:
+                  enableAppOfApps:
+                    type: boolean
                   engine:
                     type: string
                   repoUrl:
