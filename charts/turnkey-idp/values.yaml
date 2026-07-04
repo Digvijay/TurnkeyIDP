@@ -6,9 +6,9 @@ gatewayClass: istio
 
 operator:
   image:
-    repository: turnkey-idp-operator
+    repository: ghcr.io/digvijay/turnkeyidp-operator
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   resources:
     limits:
       cpu: 500m
@@ -19,9 +19,9 @@ operator:
 
 ui:
   image:
-    repository: turnkey-idp-ui
+    repository: ghcr.io/digvijay/turnkeyidp-ui
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   resources:
     limits:
       cpu: 500m
