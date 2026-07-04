@@ -1,0 +1,74 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: compositeidpclusters.azure.turnkey.idp.io
+  labels:
+    provider: azure
+spec:
+  compositeTypeRef:
+    apiVersion: turnkey.idp.io/v1alpha1
+    kind: CompositeIdpCluster
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: resourceGroup
+        base:
+          apiVersion: azure.upbound.io/v1beta1
+          kind: ResourceGroup
+          spec:
+            forProvider:
+              location: eastus
+        patches:
+        - type: FromCompositeField
+          fromFieldPath: "spec.region"
+          toFieldPath: "spec.forProvider.location"
+        - type: FromCompositeField
+          fromFieldPath: "metadata.name"
+          toFieldPath: "metadata.name"
+          transforms:
+          - type: string
+            string:
+              fmt: "%s-rg"
+
+      - name: aksCluster
+        base:
+          apiVersion: azure.upbound.io/v1beta1
+          kind: KubernetesCluster
+          spec:
+            forProvider:
+              location: eastus
+              dnsPrefix: idp-aks
+              defaultNodePool:
+              - name: default
+                nodeCount: 3
+                vmSize: Standard_D4s_v3
+                enableAutoScaling: true
+                minCount: 3
+                maxCount: 10
+              resourceGroupNameSelector:
+                matchControllerRef: true
+        patches:
+        - type: FromCompositeField
+          fromFieldPath: "spec.region"
+          toFieldPath: "spec.forProvider.location"
+        - type: FromCompositeField
+          fromFieldPath: "spec.nodeSize"
+          toFieldPath: "spec.forProvider.defaultNodePool[0].vmSize"
+        - type: FromCompositeField
+          fromFieldPath: "spec.minNodes"
+          toFieldPath: "spec.forProvider.defaultNodePool[0].nodeCount"
+        - type: FromCompositeField
+          fromFieldPath: "spec.minNodes"
+          toFieldPath: "spec.forProvider.defaultNodePool[0].minCount"
+        - type: FromCompositeField
+          fromFieldPath: "spec.maxNodes"
+          toFieldPath: "spec.forProvider.defaultNodePool[0].maxCount"
+        - type: FromCompositeField
+          fromFieldPath: "metadata.name"
+          toFieldPath: "metadata.name"

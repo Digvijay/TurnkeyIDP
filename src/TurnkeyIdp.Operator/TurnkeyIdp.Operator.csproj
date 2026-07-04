@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-TurnkeyIdp.Operator-4e47dec7-f6ca-4e91-8321-7016f2e809d9</UserSecretsId>
+    <GenerateOperatorResources>true</GenerateOperatorResources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="KubeOps.Operator" Version="11.5.0" />
+    <PackageReference Include="KubeOps.Operator.Web" Version="11.5.0" />
+    <PackageReference Include="KubernetesClient" Version="19.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+  </ItemGroup>
+</Project>

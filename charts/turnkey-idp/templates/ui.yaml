@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: turnkey-idp-ui
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: idp-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: idp-ui
+  template:
+    metadata:
+      labels:
+        app: idp-ui
+    spec:
+      containers:
+      - name: ui
+        image: "{{ .Values.ui.image.repository }}:{{ .Values.ui.image.tag }}"
+        imagePullPolicy: {{ .Values.ui.image.pullPolicy }}
+        ports:
+        - containerPort: 3000
+          name: http
+        resources:
+          {{- toYaml .Values.ui.resources | nindent 10 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: idp-ui
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: idp-ui
+spec:
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: idp-ui

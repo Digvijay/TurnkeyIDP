@@ -1,0 +1,90 @@
+using KubeOps.Abstractions.Reconciliation;
+using KubeOps.Abstractions.Reconciliation.Controller;
+using KubeOps.KubernetesClient;
+using TurnkeyIdp.Operator.Entities;
+
+namespace TurnkeyIdp.Operator.Controllers;
+
+public class IdpDeploymentController : IEntityController<IdpDeployment>
+{
+    private readonly IKubernetesClient _client;
+    private readonly ILogger<IdpDeploymentController> _logger;
+
+    public IdpDeploymentController(IKubernetesClient client, ILogger<IdpDeploymentController> logger)
+    {
+        _client = client;
+        _logger = logger;
+    }
+
+    public async Task<ReconciliationResult<IdpDeployment>> ReconcileAsync(IdpDeployment entity, CancellationToken cancellationToken)
+    {
+        var name = entity.Metadata.Name;
+        _logger.LogInformation("Reconciling IdpDeployment resource: {Name}", name);
+
+        // 1. Initialize status if not present
+        if (entity.Status == null)
+        {
+            entity.Status = new IdpDeploymentStatus
+            {
+                Phase = "Pending",
+                Message = "Initializing deployment plan...",
+                Components = new List<ComponentStatus>
+                {
+                    new() { Name = "Crossplane Infrastructure", Status = "Pending", Namespace = "crossplane-system" },
+                    new() { Name = "GitOps (ArgoCD/Flux)", Status = "Pending", Namespace = entity.Spec.GitOps.Engine.ToLower() == "argocd" ? "argocd" : "flux-system" },
+                    new() { Name = "CI/CD (Tekton/Workflows)", Status = "Pending", Namespace = entity.Spec.Ci.Engine.ToLower() == "argoworkflows" ? "argo" : "tekton-pipelines" },
+                }
+            };
+            
+            if (entity.Spec.Delivery.EnableProgressiveDelivery)
+            {
+                entity.Status.Components.Add(new ComponentStatus { Name = "Argo Rollouts", Status = "Pending", Namespace = "argo-rollouts" });
+            }
+            
+            if (entity.Spec.Observability.Enabled)
+            {
+                entity.Status.Components.Add(new ComponentStatus { Name = "Observability Mesh", Status = "Pending", Namespace = "monitoring" });
+            }
+
+            entity = await _client.UpdateStatus(entity);
+            _logger.LogInformation("Initialized status for IdpDeployment: {Name}", name);
+        }
+        
+        // 2. Perform reconciliation steps (simulated for Phase 1 verification)
+        if (entity.Status.Phase == "Pending")
+        {
+            entity.Status.Phase = "Reconciling";
+            entity.Status.Message = "Orchestrating platform primitives...";
+            entity = await _client.UpdateStatus(entity);
+            
+            // Simulating build completion
+            entity.Status.Phase = "Ready";
+            entity.Status.Message = "Internal Developer Platform ready!";
+            
+            foreach (var component in entity.Status.Components)
+            {
+                component.Status = "Healthy";
+                component.Message = "Component is running and healthy.";
+                if (component.Name.Contains("GitOps"))
+                {
+                    component.Url = "https://argocd.local.idp.io";
+                }
+                else if (component.Name.Contains("Observability"))
+                {
+                    component.Url = "https://grafana.local.idp.io";
+                }
+            }
+            
+            entity = await _client.UpdateStatus(entity);
+            _logger.LogInformation("Successfully completed reconciliation for IdpDeployment: {Name}", name);
+        }
+
+        return ReconciliationResult<IdpDeployment>.Success(entity);
+    }
+
+    public Task<ReconciliationResult<IdpDeployment>> DeletedAsync(IdpDeployment entity, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("IdpDeployment resource deleted: {Name}", entity.Metadata.Name);
+        return Task.FromResult(ReconciliationResult<IdpDeployment>.Success(entity));
+    }
+}

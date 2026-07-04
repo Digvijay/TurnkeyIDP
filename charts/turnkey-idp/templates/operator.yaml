@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: turnkey-idp-operator
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: turnkey-idp-operator-role
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: turnkey-idp-operator-role-binding
+subjects:
+- kind: ServiceAccount
+  name: turnkey-idp-operator
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: turnkey-idp-operator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: turnkey-idp-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: idp-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: idp-operator
+  template:
+    metadata:
+      labels:
+        app: idp-operator
+    spec:
+      serviceAccountName: turnkey-idp-operator
+      containers:
+      - name: operator
+        image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
+        imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          {{- toYaml .Values.operator.resources | nindent 10 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: idp-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: idp-operator
+spec:
+  ports:
+  - port: 5000
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: idp-operator

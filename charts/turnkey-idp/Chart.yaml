@@ -1,0 +1,6 @@
+apiVersion: v2
+name: turnkey-idp
+description: A Helm chart to deploy Turnkey IDP (Next.js UI & C# KubeOps Operator)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

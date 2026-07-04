@@ -1,0 +1,31 @@
+# Default values for turnkey-idp.
+# This is a YAML-formatted file.
+
+domain: 127.0.0.1.nip.io
+gatewayClass: istio
+
+operator:
+  image:
+    repository: turnkey-idp-operator
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+ui:
+  image:
+    repository: turnkey-idp-ui
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi

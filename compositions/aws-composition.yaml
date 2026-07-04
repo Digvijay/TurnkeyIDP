@@ -1,0 +1,79 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: compositeidpclusters.aws.turnkey.idp.io
+  labels:
+    provider: aws
+spec:
+  compositeTypeRef:
+    apiVersion: turnkey.idp.io/v1alpha1
+    kind: CompositeIdpCluster
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: eksCluster
+        base:
+          apiVersion: eks.aws.upbound.io/v1beta1
+          kind: Cluster
+          spec:
+            forProvider:
+              region: us-east-1
+              roleArnSelector:
+                matchControllerRef: true
+              vpcConfig:
+                subnetIdSelector:
+                  matchControllerRef: true
+        patches:
+        - type: FromCompositeField
+          fromFieldPath: "spec.region"
+          toFieldPath: "spec.forProvider.region"
+        - type: FromCompositeField
+          fromFieldPath: "metadata.name"
+          toFieldPath: "metadata.name"
+
+      - name: nodeGroup
+        base:
+          apiVersion: eks.aws.upbound.io/v1beta1
+          kind: NodeGroup
+          spec:
+            forProvider:
+              region: us-east-1
+              clusterNameSelector:
+                matchControllerRef: true
+              nodeRoleArnSelector:
+                matchControllerRef: true
+              scalingConfig:
+              - minSize: 3
+                maxSize: 10
+                desiredSize: 3
+              instanceTypes:
+              - m5.xlarge
+        patches:
+        - type: FromCompositeField
+          fromFieldPath: "spec.region"
+          toFieldPath: "spec.forProvider.region"
+        - type: FromCompositeField
+          fromFieldPath: "spec.nodeSize"
+          toFieldPath: "spec.forProvider.instanceTypes[0]"
+        - type: FromCompositeField
+          fromFieldPath: "spec.minNodes"
+          toFieldPath: "spec.forProvider.scalingConfig[0].minSize"
+        - type: FromCompositeField
+          fromFieldPath: "spec.minNodes"
+          toFieldPath: "spec.forProvider.scalingConfig[0].desiredSize"
+        - type: FromCompositeField
+          fromFieldPath: "spec.maxNodes"
+          toFieldPath: "spec.forProvider.scalingConfig[0].maxSize"
+        - type: FromCompositeField
+          fromFieldPath: "metadata.name"
+          toFieldPath: "metadata.name"
+          transforms:
+          - type: string
+            string:
+              fmt: "%s-nodes"

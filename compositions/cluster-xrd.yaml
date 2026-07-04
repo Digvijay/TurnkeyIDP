@@ -1,0 +1,47 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: compositeidpclusters.turnkey.idp.io
+spec:
+  group: turnkey.idp.io
+  names:
+    kind: CompositeIdpCluster
+    plural: compositeidpclusters
+  claimNames:
+    kind: IdpClusterClaim
+    plural: idpclusterclaims
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              nodeSize:
+                type: string
+                description: Cloud-specific virtual machine size (e.g. Standard_D4s_v3 or m5.xlarge)
+              minNodes:
+                type: integer
+                default: 3
+              maxNodes:
+                type: integer
+                default: 10
+              region:
+                type: string
+                description: Destination cloud region (e.g. eastus or us-east-1)
+            required:
+            - nodeSize
+            - region
+          status:
+            type: object
+            properties:
+              clusterName:
+                type: string
+              endpoint:
+                type: string
+              state:
+                type: string
