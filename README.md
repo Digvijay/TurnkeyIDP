@@ -27,6 +27,23 @@ helm upgrade --install turnkey-idp oci://ghcr.io/digvijay/charts/turnkey-idp \
   --create-namespace
 ```
 
+### Accessing the Turnkey UI End-to-End:
+
+The Helm chart deploys Kubernetes Gateway API resources (`Gateway` and `HTTPRoute`) to manage external access:
+
+1. **Ingress controller requirement**: Ensure your cluster has a Gateway API-compatible ingress controller installed (e.g. Istio, GKE Gateway Controller, or AWS Gateway API Controller).
+2. **Accessing via Local Kind**: If you are using the local Kind setup, the ingress listener is bound to port 80. Navigating to **[http://idp.127.0.0.1.nip.io](http://idp.127.0.0.1.nip.io)** will automatically route traffic through `idp-gateway` to the `idp-ui` Service on port 3000.
+3. **Accessing via Custom Domain**: If deploying to a production or cloud cluster, configure your custom domain during installation:
+   ```bash
+   helm upgrade --install turnkey-idp oci://ghcr.io/digvijay/charts/turnkey-idp \
+     --version 0.1.0 \
+     --namespace turnkey-idp \
+     --create-namespace \
+     --set domain=yourdomain.com \
+     --set gatewayClass=gke # or azure, aws, etc.
+   ```
+   Then configure your DNS to point `idp.yourdomain.com` to the LoadBalancer IP provisioned by the Gateway resource.
+
 ---
 
 ## Platform Application Credentials

@@ -21,6 +21,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        - name: HOME
+          value: /tmp
         image: operator
         name: operator
         resources:
@@ -30,4 +32,10 @@ spec:
           requests:
             cpu: 100m
             memory: 64Mi
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
       terminationGracePeriodSeconds: 10
