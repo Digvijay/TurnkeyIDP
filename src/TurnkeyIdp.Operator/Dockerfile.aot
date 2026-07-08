@@ -1,18 +1,40 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0-bookworm-slim AS build
 WORKDIR /operator
 
-# Install build dependencies required for native AOT compilation (clang and zlib)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends clang zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY ./ ./
-# Publish as self-contained Native AOT targeting linux-x64 without renaming assembly
 RUN dotnet publish -r linux-x64 -c Release -o out
 
-# Final runner stage using distroless base (which includes glibc for dynamically linked native AOT)
-FROM gcr.io/distroless/base-debian12:nonroot AS final
+# Hardened Debian-slim runner with kubectl and helm
+FROM debian:bookworm-slim AS final
 WORKDIR /app
-COPY --from=build /operator/out/TurnkeyIdp.Operator /app/operator
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
+    # Install kubectl (stable version)
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    chmod +x kubectl && \
+    mv kubectl /usr/local/bin/ && \
+    # Install helm
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && \
+    chmod 700 get_helm.sh && \
+    ./get_helm.sh && \
+    rm get_helm.sh && \
+    # Clean up installation packages to minimize vulnerability surface
+    apt-get purge -y curl && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Run as non-root user matching PSS Restricted guidelines
+RUN addgroup --gid 10001 operator-group && \
+    adduser --uid 10001 --gid 10001 --disabled-password --gecos "" operator-user
+
+COPY --from=build --chown=operator-user:operator-group /operator/out/TurnkeyIdp.Operator /app/operator
+RUN chmod +x /app/operator
+
+USER operator-user
 
 ENTRYPOINT [ "/app/operator" ]

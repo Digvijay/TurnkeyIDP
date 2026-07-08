@@ -893,8 +893,12 @@ spec:
                     {
                         var errTask = initProc.StandardError.ReadToEndAsync();
                         initProc.StandardOutput.ReadToEnd();
-                        errTask.GetAwaiter().GetResult();
+                        var err = errTask.GetAwaiter().GetResult();
                         initProc.WaitForExit();
+                        if (initProc.ExitCode != 0)
+                        {
+                            _logger.LogWarning("Failed to add Helm repo {Repo}: {Error}", repo[0], err);
+                        }
                     }
                 }
             }
@@ -914,8 +918,12 @@ spec:
                 {
                     var errTask = updateProc.StandardError.ReadToEndAsync();
                     updateProc.StandardOutput.ReadToEnd();
-                    errTask.GetAwaiter().GetResult();
+                    var err = errTask.GetAwaiter().GetResult();
                     updateProc.WaitForExit();
+                    if (updateProc.ExitCode != 0)
+                    {
+                        _logger.LogWarning("Failed to update Helm repos: {Error}", err);
+                    }
                 }
             }
 
@@ -939,6 +947,7 @@ spec:
                 if (process.ExitCode != 0)
                 {
                     _logger.LogError("Helm command failed with exit code {ExitCode}. Stderr: {Stderr}. Stdout: {Stdout}", process.ExitCode, stderr, stdout);
+                    throw new InvalidOperationException($"Helm command failed (exit code {process.ExitCode}): {stderr}");
                 }
                 else
                 {
@@ -949,6 +958,7 @@ spec:
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to run Helm command: helm {Arguments}", arguments);
+            throw;
         }
     }
 
@@ -976,6 +986,7 @@ spec:
                 if (process.ExitCode != 0)
                 {
                     _logger.LogError("Kubectl command failed with exit code {ExitCode}. Stderr: {Stderr}. Stdout: {Stdout}", process.ExitCode, stderr, stdout);
+                    throw new InvalidOperationException($"Kubectl command failed (exit code {process.ExitCode}): {stderr}");
                 }
                 else
                 {
@@ -986,6 +997,7 @@ spec:
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to run Kubectl command: kubectl {Arguments}", arguments);
+            throw;
         }
     }
 
