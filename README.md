@@ -1,7 +1,7 @@
 # Turnkey IDP: Unified Kubernetes Platform Control Plane
 
 [![Publish Docker Images to GHCR](https://github.com/Digvijay/TurnkeyIDP/actions/workflows/publish-docker.yml/badge.svg)](https://github.com/Digvijay/TurnkeyIDP/actions/workflows/publish-docker.yml)
-![License](https://img.shields.io/github/license/Digvijay/TurnkeyIDP)
+![License](https://img.shields.io/badge/license-MIT-green)
 ![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)
 ![.NET](https://img.shields.io/badge/.NET-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)
