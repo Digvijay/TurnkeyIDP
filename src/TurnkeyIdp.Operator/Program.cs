@@ -9,7 +9,7 @@ using TurnkeyIdp.Operator;
 
 using System.Text.Json.Serialization.Metadata;
 
-// Configure Kubernetes Client JSON options to use AOT source-generated resolvers
+// Register source generator context for the Kubernetes client
 k8s.KubernetesJson.AddJsonOptions(options =>
 {
     if (options.TypeInfoResolver != null)
@@ -27,7 +27,7 @@ k8s.KubernetesJson.AddJsonOptions(options =>
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure CORS for Next.js dashboard UI connection
+// Allow requests from the Next.js console
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -43,7 +43,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, OperatorJsonContext.Default);
 });
 
-// Configure KubeOps and manual controller registration
+// Register KubeOps operator services and controllers
 builder.Services
     .AddKubernetesOperator()
     .AddController<IdpDeploymentController, IdpDeployment>();
@@ -220,5 +220,5 @@ app.MapGet("/api/logs/{namespace}", async (string @namespace, [FromServices] IKu
     }
 });
 
-// Start the WebHost (which automatically starts background IHostedServices of KubeOps)
+// Start application
 await app.RunAsync();
