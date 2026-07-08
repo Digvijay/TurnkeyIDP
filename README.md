@@ -1,5 +1,14 @@
 # Turnkey IDP: Unified Kubernetes Platform Control Plane
 
+[![Publish Docker Images to GHCR](https://github.com/Digvijay/TurnkeyIDP/actions/workflows/publish-docker.yml/badge.svg)](https://github.com/Digvijay/TurnkeyIDP/actions/workflows/publish-docker.yml)
+![License](https://img.shields.io/github/license/Digvijay/TurnkeyIDP)
+![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)
+![.NET](https://img.shields.io/badge/.NET-512BD4?style=flat&logo=dotnet&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)
+![Helm](https://img.shields.io/badge/helm-%230F1689.svg?style=flat&logo=helm&logoColor=white)
+![Istio](https://img.shields.io/badge/istio-%23466BB0.svg?style=flat&logo=istio&logoColor=white)
+![Argo CD](https://img.shields.io/badge/argo%20cd-%23F17C37.svg?style=flat&logo=argo&logoColor=white)
+
 Turnkey IDP is a fully native, in-cluster Platform Control Plane designed to bootstrap, secure, orchestrate, and observe a complete Cloud Native platform out-of-the-box. It provides a "one-tap" setup experience, removing host-machine dependencies and replacing developer manual intervention with GitOps automation.
 
 ---
