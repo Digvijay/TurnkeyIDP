@@ -68,6 +68,8 @@ spec:
             drop:
             - ALL
         env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
