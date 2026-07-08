@@ -889,7 +889,13 @@ spec:
                 };
                 using (var initProc = Process.Start(initStartInfo))
                 {
-                    initProc?.WaitForExit();
+                    if (initProc != null)
+                    {
+                        var errTask = initProc.StandardError.ReadToEndAsync();
+                        initProc.StandardOutput.ReadToEnd();
+                        errTask.GetAwaiter().GetResult();
+                        initProc.WaitForExit();
+                    }
                 }
             }
 
@@ -904,7 +910,13 @@ spec:
             };
             using (var updateProc = Process.Start(updateStartInfo))
             {
-                updateProc?.WaitForExit();
+                if (updateProc != null)
+                {
+                    var errTask = updateProc.StandardError.ReadToEndAsync();
+                    updateProc.StandardOutput.ReadToEnd();
+                    errTask.GetAwaiter().GetResult();
+                    updateProc.WaitForExit();
+                }
             }
 
             var startInfo = new ProcessStartInfo
@@ -917,17 +929,21 @@ spec:
                 CreateNoWindow = true
             };
             using var process = Process.Start(startInfo);
-            process?.WaitForExit();
+            if (process != null)
+            {
+                var errTask = process.StandardError.ReadToEndAsync();
+                var stdout = process.StandardOutput.ReadToEnd();
+                var stderr = errTask.GetAwaiter().GetResult();
+                process.WaitForExit();
 
-            var stdout = process?.StandardOutput.ReadToEnd();
-            var stderr = process?.StandardError.ReadToEnd();
-            if (process?.ExitCode != 0)
-            {
-                _logger.LogError("Helm command failed with exit code {ExitCode}. Stderr: {Stderr}. Stdout: {Stdout}", process?.ExitCode, stderr, stdout);
-            }
-            else
-            {
-                _logger.LogInformation("Helm command succeeded. Stdout: {Stdout}", stdout);
+                if (process.ExitCode != 0)
+                {
+                    _logger.LogError("Helm command failed with exit code {ExitCode}. Stderr: {Stderr}. Stdout: {Stdout}", process.ExitCode, stderr, stdout);
+                }
+                else
+                {
+                    _logger.LogInformation("Helm command succeeded. Stdout: {Stdout}", stdout);
+                }
             }
         }
         catch (Exception ex)
@@ -950,17 +966,21 @@ spec:
                 CreateNoWindow = true
             };
             using var process = Process.Start(startInfo);
-            process?.WaitForExit();
+            if (process != null)
+            {
+                var errTask = process.StandardError.ReadToEndAsync();
+                var stdout = process.StandardOutput.ReadToEnd();
+                var stderr = errTask.GetAwaiter().GetResult();
+                process.WaitForExit();
 
-            var stdout = process?.StandardOutput.ReadToEnd();
-            var stderr = process?.StandardError.ReadToEnd();
-            if (process?.ExitCode != 0)
-            {
-                _logger.LogError("Kubectl command failed with exit code {ExitCode}. Stderr: {Stderr}. Stdout: {Stdout}", process?.ExitCode, stderr, stdout);
-            }
-            else
-            {
-                _logger.LogInformation("Kubectl command succeeded. Stdout: {Stdout}", stdout);
+                if (process.ExitCode != 0)
+                {
+                    _logger.LogError("Kubectl command failed with exit code {ExitCode}. Stderr: {Stderr}. Stdout: {Stdout}", process.ExitCode, stderr, stdout);
+                }
+                else
+                {
+                    _logger.LogInformation("Kubectl command succeeded. Stdout: {Stdout}", stdout);
+                }
             }
         }
         catch (Exception ex)
@@ -971,262 +991,129 @@ spec:
 
     private async Task DeployBackstageAsync(string name, string ns, string domain, BackstageConfig config, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Bootstrapping Spotify Backstage Portal...");
-        var backstageNs = new V1Namespace { Metadata = new V1ObjectMeta { Name = "backstage" } };
+        _logger.LogInformation("Bootstrapping real Spotify Backstage Portal...");
+        var backstageNs = new V1Namespace
+        {
+            Metadata = new V1ObjectMeta
+            {
+                Name = "backstage",
+                Labels = new Dictionary<string, string> { { "istio-injection", "enabled" } }
+            }
+        };
         await _client.SaveAsync(backstageNs, cancellationToken);
 
-        var repoUrl = string.IsNullOrEmpty(config.CatalogRepoUrl) ? "https://github.com/my-org/idp-gitops" : config.CatalogRepoUrl;
-        
-        var indexHtml = @"<!DOCTYPE html>
-<html lang='en'>
-<head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Spotify Backstage Developer Portal</title>
-    <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'>
-    <style>
-        :root {
-            --bg-base: #121212;
-            --bg-sidebar: #181818;
-            --bg-card: #282828;
-            --text-main: #ffffff;
-            --text-muted: #b3b3b3;
-            --primary: #1db954;
-            --border: #3f3f3f;
-        }
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-base);
-            color: var(--text-main);
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .sidebar {
-            width: 240px;
-            background: var(--bg-sidebar);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            padding: 1.5rem 1rem;
-            box-sizing: border-box;
-        }
-        .logo {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .nav-item {
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-            transition: all 0.2s ease;
-        }
-        .nav-item:hover, .nav-item.active {
-            background: rgba(29, 185, 84, 0.1);
-            color: var(--primary);
-        }
-        .content {
-            flex: 1;
-            padding: 2.5rem;
-            overflow-y: auto;
-            box-sizing: border-box;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-        .title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin: 0;
-        }
-        .subtitle {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 1.5rem;
-        }
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-        }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin: 0;
-        }
-        .card-type {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            background: rgba(255, 255, 255, 0.08);
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-        .card-desc {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-            line-height: 1.4;
-        }
-        .btn {
-            background: var(--primary);
-            color: #000;
-            border: none;
-            border-radius: 6px;
-            padding: 0.6rem 1.2rem;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            text-align: center;
-            display: inline-block;
-            transition: background 0.2s ease;
-        }
-        .btn:hover {
-            background: #1ed760;
-        }
-        .info-bar {
-            background: rgba(29, 185, 84, 0.08);
-            border: 1px solid rgba(29, 185, 84, 0.3);
-            border-radius: 8px;
-            padding: 1rem 1.5rem;
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-    </style>
-</head>
-<body>
-    <div class='sidebar'>
-        <div class='logo'>
-            <svg width='24' height='24' viewBox='0 0 24 24' fill='currentColor'><path d='M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm1 14.5h-2v-2h2v2zm0-4h-2V7h2v5.5z'/></svg>
-            Backstage
-        </div>
-        <div class='nav-item active'>Catalog</div>
-        <div class='nav-item'>APIs</div>
-        <div class='nav-item'>Docs</div>
-        <div class='nav-item'>Templates</div>
-        <div class='nav-item' style='margin-top: auto;'>Settings</div>
-    </div>
-    <div class='content'>
-        <div class='header'>
-            <div>
-                <h1 class='title'>My Developer Portal</h1>
-                <div class='subtitle'>Platform Console Catalog Sync Status</div>
-            </div>
-        </div>
-        
-        <div class='info-bar'>
-            <div>
-                <strong>GitOps Repository Connected:</strong> 
-                <code style='background: rgba(255,255,255,0.08); padding: 0.2rem 0.5rem; border-radius: 4px;'>{CATALOG_REPO_URL}</code>
-            </div>
-            <span style='font-size: 0.85rem; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 0.25rem;'>
-                <svg width='8' height='8' viewBox='0 0 8 8' fill='currentColor'><circle cx='4' cy='4' r='4'/></svg> Active GitOps Sync
-            </span>
-        </div>
+        string dbHost = config.DatabaseHost;
+        int dbPort = config.DatabasePort;
+        string dbUser = config.DatabaseUser;
+        string dbPassword = config.DatabasePassword;
+        string dbName = config.DatabaseName;
 
-        <h2 style='font-size: 1.25rem; margin-bottom: 1rem;'>Platform Components</h2>
-        <div class='grid'>
-            <div class='card'>
-                <div class='card-header'>
-                    <h3 class='card-title'>Argo CD</h3>
-                    <span class='card-type'>Deployment</span>
-                </div>
-                <div class='card-desc'>Declarative continuous delivery engine using GitOps principles for automated Kubernetes orchestration.</div>
-                <a href='http://argocd.{DOMAIN}' target='_blank' class='btn'>Launch Console</a>
-            </div>
-            <div class='card'>
-                <div class='card-header'>
-                    <h3 class='card-title'>Argo Workflows</h3>
-                    <span class='card-type'>CI/CD</span>
-                </div>
-                <div class='card-desc'>Container-native workflow engine orchestrating parallel CI/CD jobs and step templates.</div>
-                <a href='http://workflows.{DOMAIN}' target='_blank' class='btn'>Launch Console</a>
-            </div>
-            <div class='card'>
-                <div class='card-header'>
-                    <h3 class='card-title'>Grafana</h3>
-                    <span class='card-type'>Metrics</span>
-                </div>
-                <div class='card-desc'>Visual analytics and dashboading platform connected to Prometheus endpoints.</div>
-                <a href='http://grafana.{DOMAIN}' target='_blank' class='btn'>Launch Console</a>
-            </div>
-            <div class='card'>
-                <div class='card-header'>
-                    <h3 class='card-title'>Prometheus</h3>
-                    <span class='card-type'>Observability</span>
-                </div>
-                <div class='card-desc'>Core systems and service monitoring toolkit collecting pull-based metrics.</div>
-                <a href='http://prometheus.{DOMAIN}' target='_blank' class='btn'>Launch Console</a>
-            </div>
-            <div class='card'>
-                <div class='card-header'>
-                    <h3 class='card-title'>Jaeger</h3>
-                    <span class='card-type'>Tracing</span>
-                </div>
-                <div class='card-desc'>Distributed tracing system for monitoring microservices transactions and trace visualization.</div>
-                <a href='http://jaeger.{DOMAIN}' target='_blank' class='btn'>Launch Console</a>
-            </div>
-            <div class='card'>
-                <div class='card-header'>
-                    <h3 class='card-title'>Argo Rollouts</h3>
-                    <span class='card-type'>Delivery</span>
-                </div>
-                <div class='card-desc'>Canary and blue-green progressive delivery orchestrator.</div>
-                <a href='http://rollouts.{DOMAIN}' target='_blank' class='btn'>Launch Console</a>
-            </div>
-        </div>
-    </div>
-</body>
-</html>";
+        var dbYaml = string.Empty;
 
-        indexHtml = indexHtml.Replace("{DOMAIN}", domain).Replace("{CATALOG_REPO_URL}", repoUrl);
+        // If no database host provided, deploy in-cluster PostgreSQL (StatefulSet)
+        if (string.IsNullOrEmpty(dbHost))
+        {
+            dbHost = "backstage-postgres.backstage.svc.cluster.local";
+            dbPort = 5432;
+            dbUser = "postgres";
+            dbPassword = "postgres-strong-password";
+            dbName = "backstage";
 
-        var configMapYaml = $@"apiVersion: v1
-kind: ConfigMap
+            dbYaml = $@"apiVersion: apps/v1
+kind: StatefulSet
 metadata:
-  name: backstage-html
+  name: backstage-postgres
   namespace: backstage
-data:
-  index.html: |
-{IndentLines(indexHtml, 4)}";
+spec:
+  serviceName: backstage-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage-postgres
+  template:
+    metadata:
+      labels:
+        app: backstage-postgres
+    spec:
+      securityContext:
+        fsGroup: 999
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: {dbUser}
+        - name: POSTGRES_PASSWORD
+          value: {dbPassword}
+        - name: POSTGRES_DB
+          value: {dbName}
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 999
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-run
+          mountPath: /var/run/postgresql
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: postgres-run
+        emptyDir: {{}}
+      - name: tmp-volume
+        emptyDir: {{}}
+  volumeClaimTemplates:
+  - metadata:
+      name: pgdata
+    spec:
+      accessModes: [ ""ReadWriteOnce"" ]
+      resources:
+        requests:
+          storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage-postgres
+  namespace: backstage
+spec:
+  ports:
+  - port: 5432
+  selector:
+    app: backstage-postgres";
+        }
 
-        var deploymentYaml = @"apiVersion: apps/v1
+        var secretYaml = $@"apiVersion: v1
+kind: Secret
+metadata:
+  name: backstage-postgres-secret
+  namespace: backstage
+type: Opaque
+stringData:
+  POSTGRES_HOST: {dbHost}
+  POSTGRES_PORT: ""{dbPort}""
+  POSTGRES_USER: {dbUser}
+  POSTGRES_PASSWORD: {dbPassword}
+  POSTGRES_DB: {dbName}";
+
+        var imageBase = Environment.GetEnvironmentVariable("GHCR_IMAGE_BASE") ?? "ghcr.io/digvijay/turnkeyidp";
+        var backstageImage = $"{imageBase}-backstage:latest";
+
+        var deploymentYaml = $@"apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backstage
@@ -1241,18 +1128,68 @@ spec:
       labels:
         app: backstage
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: backstage
-        image: nginx:alpine
+        image: {backstageImage}
+        imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 80
+        - containerPort: 7007
+        env:
+        - name: POSTGRES_HOST
+          valueFrom:
+            secretKeyRef:
+              name: backstage-postgres-secret
+              key: POSTGRES_HOST
+        - name: POSTGRES_PORT
+          valueFrom:
+            secretKeyRef:
+              name: backstage-postgres-secret
+              key: POSTGRES_PORT
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: backstage-postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: backstage-postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: backstage-postgres-secret
+              key: POSTGRES_DB
+        - name: DOMAIN
+          value: {domain}
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
         volumeMounts:
-        - name: html-volume
-          mountPath: /usr/share/nginx/html
+        - name: tmp-volume
+          mountPath: /tmp
       volumes:
-      - name: html-volume
-        configMap:
-          name: backstage-html
+      - name: tmp-volume
+        emptyDir: {{}}
 ---
 apiVersion: v1
 kind: Service
@@ -1264,10 +1201,25 @@ spec:
     app: backstage
   ports:
   - port: 7007
-    targetPort: 80";
+    targetPort: 7007";
+
+        var peerAuthYaml = $@"apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: backstage-mtls
+  namespace: backstage
+spec:
+  mtls:
+    mode: STRICT";
 
         var backstagePath = Path.Combine(Path.GetTempPath(), "backstage.yaml");
-        File.WriteAllText(backstagePath, configMapYaml + "\n---\n" + deploymentYaml);
+        var manifestContent = secretYaml + "\n---\n" + deploymentYaml + "\n---\n" + peerAuthYaml;
+        if (!string.IsNullOrEmpty(dbYaml))
+        {
+            manifestContent = dbYaml + "\n---\n" + manifestContent;
+        }
+
+        File.WriteAllText(backstagePath, manifestContent);
         RunKubectlCommand($"apply -f {backstagePath}");
     }
 

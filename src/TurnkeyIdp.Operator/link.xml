@@ -1,0 +1,6 @@
+<linker>
+  <assembly fullname="KubernetesClient" preserve="all" />
+  <assembly fullname="KubeOps.Abstractions" preserve="all" />
+  <assembly fullname="KubeOps.Operator" preserve="all" />
+  <assembly fullname="TurnkeyIdp.Operator" preserve="all" />
+</linker>

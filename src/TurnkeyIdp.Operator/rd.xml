@@ -1,0 +1,8 @@
+<Directives xmlns="http://schemas.microsoft.com/netfx/2013/01/metadata">
+  <Application>
+    <Assembly Name="TurnkeyIdp.Operator" Dynamic="Required All" />
+    <Assembly Name="KubernetesClient" Dynamic="Required All" />
+    <Assembly Name="KubeOps.Operator" Dynamic="Required All" />
+    <Assembly Name="KubeOps.Abstractions" Dynamic="Required All" />
+  </Application>
+</Directives>

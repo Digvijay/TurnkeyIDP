@@ -10,6 +10,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_OPERATOR: ${{ github.repository }}-operator
   IMAGE_UI: ${{ github.repository }}-ui
+  IMAGE_BACKSTAGE: ${{ github.repository }}-backstage
 
 jobs:
   build-and-push:
@@ -47,6 +48,15 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=short
 
+      - name: Extract metadata (tags, labels) for Backstage
+        id: meta-backstage
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_BACKSTAGE }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=short
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -54,7 +64,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: src/TurnkeyIdp.Operator/config/Dockerfile
+          file: src/TurnkeyIdp.Operator/Dockerfile.aot
           push: true
           tags: ${{ steps.meta-operator.outputs.tags }}
           labels: ${{ steps.meta-operator.outputs.labels }}
@@ -69,6 +79,18 @@ jobs:
           push: true
           tags: ${{ steps.meta-ui.outputs.tags }}
           labels: ${{ steps.meta-ui.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
+      - name: Build and push Backstage
+        uses: docker/build-push-action@v6
+        with:
+          context: src/backstage
+          file: src/backstage/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backstage.outputs.tags }}
+          labels: ${{ steps.meta-backstage.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

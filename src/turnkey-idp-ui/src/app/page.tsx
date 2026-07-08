@@ -33,7 +33,7 @@ interface IdpDeployment {
     };
     delivery: {
       enableProgressiveDelivery: boolean;
-      ingressController: string;
+      gatewayClass: string;
     };
     observability: {
       enabled: boolean;

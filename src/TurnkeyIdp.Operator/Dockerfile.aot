@@ -1,0 +1,18 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0-bookworm-slim AS build
+WORKDIR /operator
+
+# Install build dependencies required for native AOT compilation (clang and zlib)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends clang zlib1g-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY ./ ./
+# Publish as self-contained Native AOT targeting linux-x64 without renaming assembly
+RUN dotnet publish -r linux-x64 -c Release -o out
+
+# Final runner stage using distroless base (which includes glibc for dynamically linked native AOT)
+FROM gcr.io/distroless/base-debian12:nonroot AS final
+WORKDIR /app
+COPY --from=build /operator/out/TurnkeyIdp.Operator /app/operator
+
+ENTRYPOINT [ "/app/operator" ]

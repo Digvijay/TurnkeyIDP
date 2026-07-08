@@ -5,6 +5,25 @@ using KubeOps.KubernetesClient;
 using Microsoft.AspNetCore.Mvc;
 using TurnkeyIdp.Operator.Controllers;
 using TurnkeyIdp.Operator.Entities;
+using TurnkeyIdp.Operator;
+
+using System.Text.Json.Serialization.Metadata;
+
+// Configure Kubernetes Client JSON options to use AOT source-generated resolvers
+k8s.KubernetesJson.AddJsonOptions(options =>
+{
+    if (options.TypeInfoResolver != null)
+    {
+        options.TypeInfoResolver = JsonTypeInfoResolver.Combine(
+            OperatorJsonContext.Default,
+            options.TypeInfoResolver
+        );
+    }
+    else
+    {
+        options.TypeInfoResolver = OperatorJsonContext.Default;
+    }
+});
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +36,11 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
+});
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, OperatorJsonContext.Default);
 });
 
 // Configure KubeOps and manual controller registration
@@ -182,7 +206,7 @@ app.MapGet("/api/logs/{namespace}", async (string @namespace, [FromServices] IKu
             }
         }
 
-        return Results.Ok(new 
+        return Results.Ok(new DiagnosticLogsResponse
         { 
             PodName = targetPod.Metadata.Name, 
             ContainerName = containerName, 

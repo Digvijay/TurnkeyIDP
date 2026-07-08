@@ -33,6 +33,11 @@ public class BackstageConfig
 {
     public bool Enabled { get; set; } = false;
     public string CatalogRepoUrl { get; set; } = string.Empty;
+    public string DatabaseHost { get; set; } = string.Empty;
+    public int DatabasePort { get; set; } = 5432;
+    public string DatabaseUser { get; set; } = string.Empty;
+    public string DatabasePassword { get; set; } = string.Empty;
+    public string DatabaseName { get; set; } = "backstage";
 }
 
 public class ClusterConfig

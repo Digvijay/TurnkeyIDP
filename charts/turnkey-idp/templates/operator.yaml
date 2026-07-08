@@ -44,10 +44,29 @@ spec:
         app: idp-operator
     spec:
       serviceAccountName: turnkey-idp-operator
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      securityContext:
+        fsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: operator
         image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
         imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: POD_NAMESPACE
           valueFrom:
@@ -55,6 +74,8 @@ spec:
               fieldPath: metadata.namespace
         - name: HOME
           value: /tmp
+        - name: GHCR_IMAGE_BASE
+          value: {{ .Values.operator.image.repository | replace "-operator" "" | quote }}
         ports:
         - containerPort: 8080
           name: http

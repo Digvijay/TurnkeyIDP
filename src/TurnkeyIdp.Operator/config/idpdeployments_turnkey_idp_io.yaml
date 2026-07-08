@@ -21,6 +21,17 @@ spec:
                 properties:
                   catalogRepoUrl:
                     type: string
+                  databaseHost:
+                    type: string
+                  databaseName:
+                    type: string
+                  databasePassword:
+                    type: string
+                  databasePort:
+                    format: int32
+                    type: integer
+                  databaseUser:
+                    type: string
                   enabled:
                     type: boolean
                 type: object

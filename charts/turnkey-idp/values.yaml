@@ -4,8 +4,13 @@
 domain: 127.0.0.1.nip.io
 gatewayClass: istio
 
+# Optional: set to pull from a private GHCR registry
+# imagePullSecrets:
+#   - name: ghcr-pull-secret
+
 operator:
   image:
+    # Must match what publish-docker.yml publishes: ghcr.io/${{ github.repository }}-operator
     repository: ghcr.io/digvijay/turnkeyidp-operator
     tag: latest
     pullPolicy: Always
@@ -19,6 +24,7 @@ operator:
 
 ui:
   image:
+    # Must match what publish-docker.yml publishes: ghcr.io/${{ github.repository }}-ui
     repository: ghcr.io/digvijay/turnkeyidp-ui
     tag: latest
     pullPolicy: Always

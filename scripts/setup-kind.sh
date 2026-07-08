@@ -67,18 +67,32 @@ helm install istio-base istio/base --namespace istio-system --create-namespace -
 helm install istiod istio/istiod --namespace istio-system --wait
 
 echo "Building Turnkey IDP Docker images..."
-docker build -t turnkey-idp-operator:latest -f "$(dirname "$0")/../src/TurnkeyIdp.Operator/config/Dockerfile" "$(dirname "$0")/../src/TurnkeyIdp.Operator"
+echo "Building Spotify Backstage Docker image (multi-stage)..."
+docker build -t turnkey-idp-backstage:latest "$(dirname "$0")/../src/backstage"
+
+docker build -t turnkey-idp-operator:latest -f "$(dirname "$0")/../src/TurnkeyIdp.Operator/Dockerfile.aot" "$(dirname "$0")/../src/TurnkeyIdp.Operator"
 docker build -t turnkey-idp-ui:latest "$(dirname "$0")/../src/turnkey-idp-ui"
 
 echo "Loading Docker images into Kind cluster..."
+kind load docker-image turnkey-idp-backstage:latest --name ${CLUSTER_NAME}
 kind load docker-image turnkey-idp-operator:latest --name ${CLUSTER_NAME}
 kind load docker-image turnkey-idp-ui:latest --name ${CLUSTER_NAME}
+
+echo "Creating and labeling namespace turnkey-idp for Istio injection..."
+kubectl create namespace turnkey-idp || true
+kubectl label namespace turnkey-idp istio-injection=enabled --overwrite
 
 echo "Installing Turnkey IDP via Helm..."
 # We install our Helm chart in the turnkey-idp namespace.
 # It registers all CRDs, operator, UI, and default gateway routes.
 helm upgrade --install turnkey-idp "$(dirname "$0")/../charts/turnkey-idp" \
-  --namespace turnkey-idp --create-namespace --wait
+  --namespace turnkey-idp --wait \
+  --set operator.image.repository=turnkey-idp-operator \
+  --set operator.image.tag=latest \
+  --set operator.image.pullPolicy=IfNotPresent \
+  --set ui.image.repository=turnkey-idp-ui \
+  --set ui.image.tag=latest \
+  --set ui.image.pullPolicy=IfNotPresent
 
 echo "Applying hostNetwork patch to Istio gateway..."
 # Wait for the deployment to exist, then patch it to bind host ports 80/443 in local dev

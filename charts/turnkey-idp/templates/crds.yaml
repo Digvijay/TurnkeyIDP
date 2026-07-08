@@ -23,6 +23,17 @@ spec:
                     type: string
                   enabled:
                     type: boolean
+                  databaseHost:
+                    type: string
+                  databasePort:
+                    format: int32
+                    type: integer
+                  databaseUser:
+                    type: string
+                  databasePassword:
+                    type: string
+                  databaseName:
+                    type: string
                 type: object
               ci:
                 properties:

@@ -6,7 +6,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-TurnkeyIdp.Operator-4e47dec7-f6ca-4e91-8321-7016f2e809d9</UserSecretsId>
     <GenerateOperatorResources>true</GenerateOperatorResources>
+    <PublishAot>true</PublishAot>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <IlcNumThreads>1</IlcNumThreads>
   </PropertyGroup>
+
+  <ItemGroup>
+    <LinkerRootDescriptor Include="link.xml" />
+    <RdXmlFile Include="rd.xml" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="KubeOps.Operator" Version="11.5.0" />
